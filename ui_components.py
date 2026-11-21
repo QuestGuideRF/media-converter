@@ -1,0 +1,95 @@
+from PyQt6 .QtWidgets import (
+QWidget ,QVBoxLayout ,QHBoxLayout ,QListWidget ,QPushButton ,QGroupBox ,
+QComboBox ,QLabel ,QLineEdit ,QProgressBar ,QTextEdit
+)
+from PyQt6 .QtCore import pyqtSignal ,Qt ,QSize
+class DropListWidget (QListWidget ):
+    filesDropped =pyqtSignal (list )
+    def __init__ (self ,parent =None ):
+        super ().__init__ (parent )
+        self .setAcceptDrops (True )
+        self .setAlternatingRowColors (True )
+    def dragEnterEvent (self ,event ):
+        if event .mimeData ().hasUrls ():
+            event .acceptProposedAction ()
+        else :
+            super ().dragEnterEvent (event )
+    def dragMoveEvent (self ,event ):
+        if event .mimeData ().hasUrls ():
+            event .acceptProposedAction ()
+        else :
+            super ().dragMoveEvent (event )
+    def dropEvent (self ,event ):
+        if event .mimeData ().hasUrls ():
+            event .setDropAction (Qt .DropAction .CopyAction )
+            files =[url .toLocalFile ()for url in event .mimeData ().urls ()]
+            self .filesDropped .emit (files )
+            event .acceptProposedAction ()
+        else :
+            super ().dropEvent (event )
+def create_main_widget (parent_window ):
+    central_widget =QWidget ()
+    main_layout =QVBoxLayout (central_widget )
+    top_panel_layout =QHBoxLayout ()
+    source_group =QGroupBox ("Исходные файлы (перетащите сюда)")
+    source_layout =QVBoxLayout (source_group )
+    parent_window .image_list_widget =DropListWidget ()
+    parent_window .video_list_widget =DropListWidget ()
+    parent_window .image_list_widget .filesDropped .connect (parent_window .add_files_to_list )
+    parent_window .video_list_widget .filesDropped .connect (parent_window .add_files_to_list )
+    source_layout .addWidget (QLabel ("🖼️ Изображения:"))
+    source_layout .addWidget (parent_window .image_list_widget )
+    source_layout .addWidget (QLabel ("🎬 Видео:"))
+    source_layout .addWidget (parent_window .video_list_widget )
+    top_panel_layout .addWidget (source_group )
+    main_layout .addLayout (top_panel_layout )
+    settings_layout =QHBoxLayout ()
+    settings_group =QGroupBox ("Настройки конвертации")
+    settings_group .setLayout (settings_layout )
+    parent_window .image_format_combo =QComboBox ()
+    parent_window .image_format_combo .addItems (['png','jpg','webp','bmp'])
+    img_format_layout =QVBoxLayout ()
+    img_format_layout .addWidget (QLabel ("Формат изображений:"))
+    img_format_layout .addWidget (parent_window .image_format_combo )
+    settings_layout .addLayout (img_format_layout )
+    parent_window .video_format_combo =QComboBox ()
+    parent_window .video_format_combo .addItems (['mp4','mkv','webm','avi','mov'])
+    video_format_layout =QVBoxLayout ()
+    video_format_layout .addWidget (QLabel ("Формат видео:"))
+    video_format_layout .addWidget (parent_window .video_format_combo )
+    settings_layout .addLayout (video_format_layout )
+    parent_window .output_dir_line =QLineEdit ()
+    parent_window .output_dir_line .setReadOnly (True )
+    parent_window .output_dir_line .setPlaceholderText ("Выберите папку...")
+    output_dir_button =QPushButton ("Выбрать...")
+    output_dir_button .clicked .connect (parent_window .select_output_directory )
+    output_dir_hbox =QHBoxLayout ()
+    output_dir_hbox .addWidget (parent_window .output_dir_line )
+    output_dir_hbox .addWidget (output_dir_button )
+    output_dir_layout =QVBoxLayout ()
+    output_dir_layout .addWidget (QLabel ("Папка для сохранения:"))
+    output_dir_layout .addLayout (output_dir_hbox )
+    settings_layout .addLayout (output_dir_layout ,stretch =2 )
+    main_layout .addWidget (settings_group )
+    control_layout =QHBoxLayout ()
+    parent_window .convert_button =QPushButton ("🚀 Конвертировать")
+    parent_window .convert_button .setIconSize (QSize (24 ,24 ))
+    parent_window .convert_button .setFixedHeight (50 )
+    parent_window .convert_button .clicked .connect (parent_window .start_conversion )
+    parent_window .clear_button =QPushButton ("Очистить списки")
+    parent_window .clear_button .setObjectName ("clearButton")
+    parent_window .clear_button .setFixedHeight (50 )
+    parent_window .clear_button .clicked .connect (parent_window .clear_lists )
+    control_layout .addWidget (parent_window .clear_button )
+    control_layout .addWidget (parent_window .convert_button )
+    main_layout .addLayout (control_layout )
+    bottom_group =QGroupBox ("Процесс")
+    bottom_layout =QVBoxLayout (bottom_group )
+    parent_window .progress_bar =QProgressBar ()
+    parent_window .progress_bar .setValue (0 )
+    parent_window .log_widget =QTextEdit ()
+    parent_window .log_widget .setReadOnly (True )
+    bottom_layout .addWidget (parent_window .progress_bar )
+    bottom_layout .addWidget (parent_window .log_widget )
+    main_layout .addWidget (bottom_group )
+    return central_widget
